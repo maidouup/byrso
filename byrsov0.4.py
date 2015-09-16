@@ -5,6 +5,11 @@ import urllib2
 import re
 import os
 import time
+import sys
+stdout = sys.stdout  
+reload(sys) 
+sys.setdefaultencoding('utf-8')  #解决Unicode编码问题
+sys.stdout = stdout             #解决加入sys 后print无法输出
 user_agent = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2272.101 Safari/537.36'
 headers={'User-Agent' : user_agent}            
 from urllib2 import Request, urlopen, URLError, HTTPError              
@@ -15,9 +20,11 @@ class Spider:
 
     def __init__(self):
         self.siteURL1 = 'http://m.byr.cn/'
-        self.siteURL2 = 'http://m.byr.cn/board/Feeling'
-        self.siteURL3 = 'http://m.byr.cn/article/Feeling/2789323' 
+        self.siteURL2 = 'http://m.byr.cn/board/Talking'
+        self.siteURL3 = 'http://m.byr.cn/article/Feeling/2789323'
         self.url1=0
+        self.pagenum=0      #每个版块帖子总页数  现改为局部变量
+        self.articleurl=0    #版块中每个帖子地址
     def geturl(self,num):
         url1 = self.siteURL2
         print url1
@@ -37,31 +44,64 @@ class Spider:
             pattern1 = re.compile('<li.*?<a href="(.*?)">(.*?)</a>.*?"|"</li>.*?</ul>',re.S)
             items1 = re.findall(pattern1,page1)         
         return item1[0]
-    def getpagenum1(self):#获取板块首页的总页数
+    def getpagenum1(self):#获取板块首页的总页数  /Feeling?p=2
         url1 = self.siteURL2
         print url1
         request = urllib2.Request(url1,headers = headers)
         response = urllib2.urlopen(request)
         page1 = response.read().decode('utf-8')
         #pattern1 = re.compile('<div class="sec nav">.*?<a class="plant">(.*?)/(.*?)</a>.*?"|"<a class="plant">',re.S)
-        pattern1 = re.compile('<div class="sec nav">.*?<form action="(.*?)".*?<a class="plant">(.*?)/(.*?)</a>.*?"|"<a class="plant">',re.S)
+        pattern1 = re.compile(r'<div class="sec nav">.*?<form action="(.*?)".*?<a class="plant">(.*?)/(.*?)</a>.*?"|"<a class="plant">',re.S)
         result1=re.search(pattern1,page1)
         if result1:
-            print result1.group(1),result1.group(3)
-            return int(result1.group(3).strip())
+            self.pagenum=int(result1.group(3).strip())
+            print self.pagenum
+            return self.pagenum          #改为局部变量
+            #pagenum=int(result1.group(3).strip())
+            #print pagenum
+            #return pagenum
         else:          
             return None
-    def geturl1(self):#获取板块首页中的连接，每个连接的总帖数（用于计算每贴的页数）
-        url1 = self.siteURL2
-        print url1
-        request = urllib2.Request(url1,headers = headers)
-        response = urllib2.urlopen(request)
-        page1 = response.read().decode('utf-8')
-        #pattern1 = re.compile('<li.*?<div>.*?<a href="(.*?)">(.*?)</a>.*?"((.*?))"</div>',re.S)
-        pattern1 = re.compile('<li.*?<a href="(.*?)">(.*?)</a>(.*?)</div>',re.S)
-        items = re.findall(pattern1,page1)
-        for item in items:
-             print item[0],item[1],item[2]
+    def geturl1(self,user):#获取版块中每页的帖子链接与主题，每页的第一个链接不用。
+        for num in range(1,self.pagenum+1):
+           url1 = self.siteURL2+"?p="+str(num)
+           print "p="+str(num)
+           request = urllib2.Request(url1,headers = headers)
+           response = urllib2.urlopen(request)
+           page1 = response.read().decode('utf-8')    
+           pattern1 = re.compile(r'<li(>| class="hla">)<div><a href="(.*?)" ?(.*?)>(.*?)</a>(.*?)</div>',re.S)
+           items = re.findall(pattern1,page1)
+           self.articleurl=items[1]
+           #print self.articleurl
+           for item in items:
+                #print item[1],item[3],item[4]
+               url2=self.siteURL1+item[1]+"?au="+user
+               #print url2
+               request = urllib2.Request(url2,headers = headers)
+               response = urllib2.urlopen(request)
+               page2 = response.read().decode('utf-8')
+               pattern2 = re.compile(r'<li class="f">.*?</li><li>(.*?)</li>',re.S)
+               result = re.findall(pattern2,page2)
+               #print len(result[0])
+               #print(len(result1))
+               if len(result[0])>7:
+                   #print url2,item[3]
+                   title=item[3].encode('utf-8')
+                   f=open(user+'.txt','a+')#w覆盖a后加
+                   f.writelines(str(title)+'\n'+url2+'\n')
+                   f.close()
+               #else:
+                    #print '',
+                   
+               
+               
+    #def searchuser(self,user): #每个主题帖中搜索目标用户
+        #user=raw_input("请输入查询用户：")
+        #self.getpagenum1()
+        #self.geturl1(user)
+         
+        
+        
         
 
     def getPage(self,num,pageIndex):
@@ -133,9 +173,13 @@ class Spider:
             #print result1.group(1),result1.group(2),result1.group(3)
             return int(result1.group(3).strip())
         else:          
-            return None        
+            return None
+    #def searchuser(self,userID):
+        
 spider = Spider()
-#user=raw_input("请输入查询用户：")
+#user=raw_input("请输入查询用户:")
+user="upload"
 #spider.geturl(3)
-#spider.getpagenum1()
-spider.geturl1()
+spider.getpagenum1()
+spider.geturl1(user)
+#spider.searchuser()
