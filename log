@@ -1,0 +1,20 @@
+9月16日
+1.成功实现15号的想法，
+2.对于写入txt的操作，存在问题是，内容编码不正确：解决(solved)
+import sys
+reload(sys) 
+sys.setdefaultencoding('utf-8')  #解决Unicode编码问题
+
+3. import sys 后出现 print功能失效：解决（solved）
+stdout = sys.stdout  
+sys.stdout = stdout 
+
+4.如何获取运行时输入的参数：没解决(unsolved)
+
+5.程序运行到一定后，就自动停:没解决(unsolved)
+
+9月15日  
+源码版本：byrsov0.4.py           对象服务器：http:\m.byr.cn    功能：全站搜索某个人的文章帖子
+
+切入点1：读取手机版的板块列表url
+切入点2：通过每个话题中的只看此ID就可以，循环搜索。
